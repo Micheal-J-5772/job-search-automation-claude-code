@@ -22,8 +22,18 @@ window.BH = (() => {
   const DELAY = SITE === "indeed" ? 5000 : 1200;   // ms between fetches — Indeed 429s at 2.5 s on long runs
   let DAYS = 1;                                     // search window; set by BH.start(titles, days)
   const MAX_PAGES = 40;
-  // EDIT ME: same regex as harvest.py TITLE_WORDS — the words for YOUR field — a miss means the job was never a candidate.
-  const TW = /\b(test|tester|testing|qa|quality assurance|sdet|automation|v&v|verification|validation|field|deployment|integration|drone|uav|uas|rpas|flight|pilot)\b/i;
+  // Title filter, built from the titles passed to BH.start() — same rule as harvest.py
+  // (a title is worth opening if it shares a meaningful word with one of your target titles).
+  const STOP = new Set(["engineer", "engineers", "senior", "junior", "lead", "principal", "staff", "head",
+    "manager", "analyst", "specialist", "officer", "associate", "consultant", "mid", "level", "and", "of",
+    "in", "the", "for", "to", "with", "or", "a", "an", "i", "ii", "iii"]);
+  let TW = /$^/;
+  const buildTW = (titles) => {
+    const words = [...new Set(titles.flatMap(t => t.toLowerCase().split(/[^a-z0-9+#&]+/))
+      .filter(w => w.length > 1 && !STOP.has(w)))].sort((a, b) => b.length - a.length);
+    const esc = w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp("\\b(" + words.map(esc).join("|") + ")\\b", "i");
+  };
   const sleep = ms => new Promise(r => setTimeout(r, ms + Math.random() * 600));
   const st = { done: false, query: null, n: 0, errors: [], queries: [], jobs: new Map() };
 
@@ -181,7 +191,7 @@ window.BH = (() => {
 
   return {
     site: SITE,
-    start(titles, days = 1) { DAYS = days; if (!SITE) return "not on Indeed or CV-Library"; st.done = false; run(titles); return `started ${titles.length} titles on ${SOURCE}`; },
+    start(titles, days = 1) { DAYS = days; TW = buildTW(titles); if (!SITE) return "not on Indeed or CV-Library"; st.done = false; run(titles); return `started ${titles.length} titles on ${SOURCE}`; },
     status: () => ({ site: SOURCE, done: st.done, query: st.query, n: st.n, queries: st.queries.length, errors: st.errors }),
     result: () => ({ source: SOURCE, queries: st.queries, errors: st.errors, jobs: [...st.jobs.values()] }),
     // Compact export for the tool-output limit (~50 KB per call): query log + title-matched

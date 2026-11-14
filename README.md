@@ -47,8 +47,8 @@ several weeks of real daily runs.
 2. **Fill `_claude/GetJobs-Prompt.md`.** Titles table, countries, target companies, and sections
    C1–C9. This is the step that matters: write each rule from a job you actually wasted an
    application on. `/getjobs` refuses to run while placeholders remain.
-3. **Edit the title-word filter** (`TITLE_WORDS` in `harvest.py`, `TW` in `board-harvest.js`)
-   to your field's words, and the Data tab of the tracker to your boards.
+3. **Edit the Data tab** of the tracker to your boards. (The title filter builds itself from
+   your Titles table — nothing to edit.)
 4. Fill the `<…>` guardrails in `_claude/Cover-Letters-Prompt.md`.
 5. **Run it on one job first:** `/getjobs <one posting URL>`. Correct, re-run. Then go daily.
 

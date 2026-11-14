@@ -28,8 +28,8 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like
       "Chrome/130.0 Safari/537.36")
 # GETJOBS_DAYS=7 widens the window (LinkedIn f_TPR, Reed lastweek) for first runs of new titles.
 DAYS = int(os.environ.get("GETJOBS_DAYS", "1"))
-# Reed's "today" means since midnight, so a run just after midnight sees almost nothing
-# (2 jobs on 2026-11-14 00:20). GETJOBS_REED=lastthreedays widens Reed alone; dedupe drops repeats.
+# Reed's "today" means since midnight, so a run just after midnight sees almost nothing.
+# GETJOBS_REED=lastthreedays widens Reed alone; dedupe drops repeats.
 REED_WINDOW = os.environ.get("GETJOBS_REED") or ("today" if DAYS <= 1 else "lastweek")
 # GETJOBS_SOURCES=reed (or linkedin) runs one source only.
 SOURCES = os.environ.get("GETJOBS_SOURCES", "linkedin,reed")
@@ -37,10 +37,6 @@ LOCATION = os.environ.get("GETJOBS_LOCATION", "United Kingdom")  # LinkedIn sear
 DELAY = 1.5  # seconds between requests; LinkedIn's guest API returns 429 when hammered
 # Cheap client-side title filter — the sites' own matching is fuzzy. A hit here is only a
 # reason to open the posting (prompt A2); a miss means the job was never a candidate.
-# EDIT ME: words that make a title worth opening, for YOUR field (keep board-harvest.js TW in step).
-TITLE_WORDS = re.compile(
-    r"\b(test|tester|testing|qa|quality assurance|sdet|automation|v&v|verification|validation|"
-    r"field|deployment|integration|drone|uav|uas|rpas|flight|pilot)\b", re.I)
 DEAD = re.compile(r"no longer (available|accepting)|position (has been )?filled|job (has )?closed|"
                   r"this job has expired|page not found|\b404\b", re.I)
 
@@ -82,6 +78,26 @@ def titles():
                 if t and t not in out:
                     out.append(t)
     return out
+
+
+# Title filter, built from the prompt's Titles table: a title is worth opening if it shares a
+# meaningful word with one of your target titles. Generic words below are ignored; add more if
+# they let through too much, or list extra synonyms in EXTRA_TITLE_WORDS (e.g. "qa", "sdet").
+STOP_WORDS = {"engineer", "engineers", "senior", "junior", "lead", "principal", "staff", "head",
+              "manager", "analyst", "specialist", "officer", "associate", "consultant", "mid",
+              "level", "and", "of", "in", "the", "for", "to", "with", "or", "a", "an", "i", "ii", "iii"}
+EXTRA_TITLE_WORDS = [w for w in os.environ.get("GETJOBS_EXTRA_WORDS", "").split(",") if w.strip()]
+
+
+def title_words():
+    words = {w for t in titles() for w in re.split(r"[^a-z0-9+#&]+", t.lower())
+             if len(w) > 1 and w not in STOP_WORDS} | {w.strip().lower() for w in EXTRA_TITLE_WORDS}
+    if not words:
+        sys.exit("no usable words in the prompt's Titles table")
+    return re.compile(r"\b(%s)\b" % "|".join(sorted(map(re.escape, words), key=len, reverse=True)), re.I)
+
+
+TITLE_WORDS = title_words()
 
 
 def linkedin_search(q):

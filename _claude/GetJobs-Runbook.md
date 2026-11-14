@@ -33,8 +33,10 @@ python -I _claude/tools/harvest.py search > <scratch>/pool.json   (run in backgr
 * **Window:** default 24 h. **Catch-up after missed days:** `GETJOBS_DAYS=6` (LinkedIn takes any
   number of days; Reed switches to "last week"). Dedupe absorbs the overlap.
 * `GETJOBS_LOCATION` sets the LinkedIn location (default `United Kingdom`).
-* `title_match: false` jobs were never candidates (not logged). **Edit `TITLE_WORDS` in
-  `harvest.py` (and `TW` in `board-harvest.js`) to your field's words before the first run.**
+* `title_match: false` jobs were never candidates (not logged). The title filter is built
+  automatically from the prompt's Titles table (shared meaningful words; generic words like
+  "engineer" or "senior" ignored). Add synonyms with `GETJOBS_EXTRA_WORDS=qa,sdet`, or extend
+  `STOP_WORDS` in `harvest.py` / `STOP` in `board-harvest.js` if too much gets through.
 * `harvest.py search --only "<title>"` runs one title — for debugging or one-job tests.
 
 ## 1b. Harvest Indeed UK + CV-Library (Claude in Chrome)
@@ -79,8 +81,8 @@ Report pages you couldn't read (403/404/JS-only) — never treat them as "no job
 1. **Company** — excluded employers, excluded-industry companies by name, job boards shown as
    the employer (e.g. Jobgether, Haystack, eFinancialCareers, targetjobs, TipTopJob, Free-Work,
    AI-training "task" platforms).
-2. **Title** — apprentice/intern/trainee/placement, Head of/Director/Manager, obvious excluded
-   role types (field service, PAT/fixed-wire testing, production test, IT support…).
+2. **Title** — whatever your C2 and C4 rule out on the title alone (e.g. apprentice/intern,
+   Head of/Director, the excluded role types you listed).
 3. **Salary** — explicit card salary below the floor (annualise hourly/daily first).
 4. **Location** — only when the card proves it. **A LinkedIn city is not proof** — fetch.
 
